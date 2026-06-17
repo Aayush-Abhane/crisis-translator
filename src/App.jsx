@@ -70,11 +70,11 @@ ${document}`
   return (
     <div className="App">
       <header>
-        <h1>Crisis-to-Action Translator</h1>
+        <h1>THIS IS A TEST</h1>
         <p>Turn confusing documents into clear action plans</p>
         <h3 style={{ marginBottom: "10px" }}>
-      ⚠️ AI Disclaimer
-    </h3>
+          ⚠️ AI Disclaimer
+        </h3>
 
     <p>
       This application uses Artificial Intelligence to summarize and explain
@@ -133,8 +133,40 @@ ${document}`
             {loading ? 'Analyzing with Mistral AI...' : 'Analyze Document'}
           </button>
         </div>
+        <div
+          style={{
+            background: "#fff8e1",
+            border: "2px solid #f57c00",
+            borderRadius: "10px",
+            padding: "18px",
+            marginTop: "20px",
+            marginBottom: "20px",
+            color: "#333",
+            textAlign: "left",
+          }}
+        >
+          <h3 style={{ color: "#d84315", marginBottom: "10px" }}>
+            ⚠️ Important AI Disclaimer
+          </h3>
+
+          <p>
+            This application uses Artificial Intelligence (AI) to summarize and
+            interpret documents.
+          </p>
+
+          <p style={{ marginTop: "10px" }}>
+            AI-generated responses may be inaccurate, incomplete, or omit important
+            information.
+          </p>
+
+          <p style={{ marginTop: "10px", fontWeight: "bold" }}>
+            Always verify important details using the original document before making
+            legal, medical, financial, educational, or government-related decisions.
+          </p>
+        </div>
 
         {error && (
+          
           <div className="error-message">
             ⚠️ {error}
           </div>
