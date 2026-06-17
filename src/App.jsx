@@ -9,7 +9,7 @@ function App() {
 
   const handleAnalyze = async () => {
     if (!document.trim()) {
-      setError('Please paste a document');
+      setError('Please paste a document.');
       return;
     }
 
@@ -40,7 +40,7 @@ function App() {
 5. URGENCY LEVEL (High/Medium/Low)
 6. IF YOU DON'T ACT (consequences)
 
-TONE: Simple, kind, clear. Assume reader is stressed.
+TONE: Simple, kind, clear. Assume the reader is stressed.
 
 DOCUMENT:
 ${document}`
@@ -52,17 +52,16 @@ ${document}`
       );
 
       const data = await response.json();
-      
+
       if (data.error) {
         setError(data.error.message || 'API error');
         return;
       }
 
-      const analysis = data.choices[0].message.content;
-      setResult(analysis);
-    } catch (error) {
-      console.error('Error:', error);
-      setError('Network error. Check your API key and internet.');
+      setResult(data.choices[0].message.content);
+    } catch (err) {
+      console.error(err);
+      setError('Network error. Please check your internet connection or API key.');
     }
 
     setLoading(false);
@@ -73,11 +72,51 @@ ${document}`
       <header>
         <h1>Crisis-to-Action Translator</h1>
         <p>Turn confusing documents into clear action plans</p>
+        <h3 style={{ marginBottom: "10px" }}>
+      ⚠️ AI Disclaimer
+    </h3>
+
+    <p>
+      This application uses Artificial Intelligence to summarize and explain
+      documents. While it strives to provide accurate information, AI can make
+      mistakes, misunderstand context, or omit important details.
+    </p>
+
+    <p style={{ marginTop: "10px" }}>
+      <strong>Please verify all important information using the original
+      document.</strong> Do not rely solely on this application for legal,
+      medical, financial, educational, or government-related decisions.
+    </p>
+
+        <div
+          style={{
+            marginTop: '20px',
+            backgroundColor: '#fff3cd',
+            color: '#856404',
+            border: '1px solid #ffeeba',
+            borderRadius: '8px',
+            padding: '12px',
+            maxWidth: '900px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            fontSize: '14px',
+            lineHeight: '1.5',
+          }}
+        >
+          <strong>⚠️ Disclaimer:</strong> This application uses artificial
+          intelligence to summarize and interpret documents. AI-generated
+          responses may contain mistakes, omit important information, or be
+          inaccurate. Always verify important details with the original
+          document and consult the appropriate organization or qualified
+          professional before making legal, medical, financial, or other
+          significant decisions.
+        </div>
       </header>
 
       <main>
         <div className="input-section">
           <label htmlFor="document">Paste your document here:</label>
+
           <textarea
             id="document"
             value={document}
@@ -85,9 +124,9 @@ ${document}`
             placeholder="Paste any document: government letter, medical notice, school form, bill, etc."
             rows="10"
           />
-          
-          <button 
-            onClick={handleAnalyze} 
+
+          <button
+            onClick={handleAnalyze}
             disabled={loading}
             className="analyze-button"
           >
@@ -104,13 +143,16 @@ ${document}`
         {result && (
           <div className="result-section">
             <h2>✅ Analysis Complete</h2>
+
             <div className="result-content">
               <pre>{result}</pre>
             </div>
-            <button 
+
+            <button
               onClick={() => {
                 setDocument('');
                 setResult('');
+                setError('');
               }}
               className="reset-button"
             >
@@ -122,6 +164,23 @@ ${document}`
 
       <footer>
         <p>Powered by Mistral AI | Built for clarity in crisis</p>
+
+        <p
+          style={{
+            marginTop: '10px',
+            fontSize: '12px',
+            maxWidth: '800px',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            opacity: 0.9,
+            lineHeight: '1.5',
+          }}
+        >
+          <strong>Disclaimer:</strong> This AI assistant may produce inaccurate,
+          incomplete, or outdated information. Always review the original
+          document and consult qualified professionals for legal, medical,
+          financial, or other important decisions.
+        </p>
       </footer>
     </div>
   );

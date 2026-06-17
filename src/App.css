@@ -5,7 +5,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monopsace, sans-serif;
   background: #f5f7fa;
   color: #333;
 }
@@ -192,4 +192,24 @@ footer {
     padding: 12px;
     font-size: 14px;
   }
+  <footer>
+  <p>Powered by Mistral AI | Built for clarity in crisis</p>
+
+  <p
+    style={{
+      marginTop: '10px',
+      fontSize: '12px',
+      maxWidth: '800px',
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      opacity: 0.9,
+      lineHeight: '1.5',
+    }}
+  >
+    <strong>Disclaimer:</strong> This AI assistant may produce inaccurate,
+    incomplete, or outdated information. Always review the original document
+    and consult qualified professionals for legal, medical, financial, or other
+    important decisions.
+  </p>
+</footer>
 }
