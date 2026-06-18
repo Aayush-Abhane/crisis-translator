@@ -5,7 +5,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monopsace, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #f5f7fa;
   color: #333;
 }
@@ -32,6 +32,19 @@ h1 {
 header p {
   font-size: 16px;
   opacity: 0.95;
+}
+
+.persona-box {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 16px 20px;
+  max-width: 800px;
+  margin: 20px auto 0 auto;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
+  color: white;
 }
 
 main {
@@ -61,7 +74,7 @@ textarea {
   border: 2px solid #ddd;
   border-radius: 8px;
   font-size: 14px;
-  font-family: 'Courier New', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   resize: vertical;
   transition: border-color 0.3s;
 }
@@ -70,6 +83,17 @@ textarea:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+}
+
+.disclaimer-box {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5d4037;
 }
 
 .analyze-button {
@@ -133,19 +157,59 @@ textarea:focus {
 
 .result-content {
   background: #f8f9fa;
-  padding: 15px;
+  padding: 20px;
   border-radius: 8px;
   margin-bottom: 15px;
   border-left: 4px solid #667eea;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #333;
 }
 
-pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: 'Courier New', monospace;
-  font-size: 13px;
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  color: #667eea;
+  margin-top: 16px;
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.markdown p {
+  margin-bottom: 8px;
   line-height: 1.6;
-  color: #333;
+}
+
+.markdown li {
+  margin-left: 20px;
+  margin-bottom: 5px;
+  line-height: 1.6;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  line-height: 1.6;
+}
+
+.checkbox-item input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.human-review-note {
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #2e7d32;
 }
 
 .reset-button {
@@ -176,7 +240,6 @@ footer {
   font-size: 12px;
 }
 
-/* Responsive Design */
 @media (max-width: 600px) {
   h1 {
     font-size: 24px;
@@ -192,24 +255,4 @@ footer {
     padding: 12px;
     font-size: 14px;
   }
-  <footer>
-  <p>Powered by Mistral AI | Built for clarity in crisis</p>
-
-  <p
-    style={{
-      marginTop: '10px',
-      fontSize: '12px',
-      maxWidth: '800px',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      opacity: 0.9,
-      lineHeight: '1.5',
-    }}
-  >
-    <strong>Disclaimer:</strong> This AI assistant may produce inaccurate,
-    incomplete, or outdated information. Always review the original document
-    and consult qualified professionals for legal, medical, financial, or other
-    important decisions.
-  </p>
-</footer>
 }

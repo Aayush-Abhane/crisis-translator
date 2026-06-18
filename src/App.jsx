@@ -1,6 +1,24 @@
 import { useState } from 'react';
 import './App.css';
 
+function MarkdownRenderer({ text }) {
+  const lines = text.split('\n');
+  return (
+    <div className="markdown">
+      {lines.map((line, i) => {
+        if (line.startsWith('### ')) return <h3 key={i}>{line.slice(4)}</h3>;
+        if (line.startsWith('## ')) return <h2 key={i}>{line.slice(3)}</h2>;
+        if (line.startsWith('# ')) return <h1 key={i}>{line.slice(2)}</h1>;
+        if (line.startsWith('- [ ] ') || line.startsWith('* [ ] ')) return <label key={i} className="checkbox-item"><input type="checkbox" /> {line.slice(6)}</label>;
+        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i}>{line.slice(2)}</li>;
+        if (line.trim() === '') return <br key={i} />;
+        const bold = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        return <p key={i} dangerouslySetInnerHTML={{ __html: bold }} />;
+      })}
+    </div>
+  );
+}
+
 function App() {
   const [document, setDocument] = useState('');
   const [result, setResult] = useState('');
@@ -24,7 +42,7 @@ function App() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer XE9ifGku1vlFFg3i4Iutio3OrZapK3VS',
+            'Authorization': `Bearer ${import.meta.env.VITE_MISTRAL_API_KEY}`,
           },
           body: JSON.stringify({
             model: 'mistral-small',
@@ -61,7 +79,7 @@ ${document}`
       setResult(data.choices[0].message.content);
     } catch (err) {
       console.error(err);
-      setError('Network error. Please check your internet connection or API key.');
+      setError('Network error. Please check your internet connection.');
     }
 
     setLoading(false);
@@ -70,46 +88,15 @@ ${document}`
   return (
     <div className="App">
       <header>
-        <h1>THIS IS A TEST</h1>
+        <h1>Crisis-to-Action Translator</h1>
         <p>Turn confusing documents into clear action plans</p>
-        <h3 style={{ marginBottom: "10px" }}>
-          ⚠️ AI Disclaimer
-        </h3>
 
-    <p>
-      This application uses Artificial Intelligence to summarize and explain
-      documents. While it strives to provide accurate information, AI can make
-      mistakes, misunderstand context, or omit important details.
-    </p>
-
-    <p style={{ marginTop: "10px" }}>
-      <strong>Please verify all important information using the original
-      document.</strong> Do not rely solely on this application for legal,
-      medical, financial, educational, or government-related decisions.
-    </p>
-
-        <div
-          style={{
-            marginTop: '20px',
-            backgroundColor: '#fff3cd',
-            color: '#856404',
-            border: '1px solid #ffeeba',
-            borderRadius: '8px',
-            padding: '12px',
-            maxWidth: '900px',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            fontSize: '14px',
-            lineHeight: '1.5',
-          }}
-        >
-          <strong>⚠️ Disclaimer:</strong> This application uses artificial
-          intelligence to summarize and interpret documents. AI-generated
-          responses may contain mistakes, omit important information, or be
-          inaccurate. Always verify important details with the original
-          document and consult the appropriate organization or qualified
-          professional before making legal, medical, financial, or other
-          significant decisions.
+        <div className="persona-box">
+          <strong>👤 Who this is for:</strong> People like Maria — a single mom who just
+          received a 4-page housing assistance denial letter full of legal language. She
+          doesn't know if she can appeal, what the deadline is, or what to do next.
+          Paste in any confusing document and we'll break it down into plain language
+          and clear next steps.
         </div>
       </header>
 
@@ -121,52 +108,27 @@ ${document}`
             id="document"
             value={document}
             onChange={(e) => setDocument(e.target.value)}
-            placeholder="Paste any document: government letter, medical notice, school form, bill, etc."
+            placeholder="Paste any document: government letter, medical notice, school form, bill, eviction notice, etc."
             rows="10"
           />
+
+          <div className="disclaimer-box">
+            <strong>⚠️ Important:</strong> This AI summarizes documents to help you
+            understand them — it does not provide legal, medical, or financial advice.
+            Always verify details with the original document and consult a qualified
+            professional before making important decisions.
+          </div>
 
           <button
             onClick={handleAnalyze}
             disabled={loading}
             className="analyze-button"
           >
-            {loading ? 'Analyzing with Mistral AI...' : 'Analyze Document'}
+            {loading ? 'Analyzing...' : 'Analyze Document'}
           </button>
-        </div>
-        <div
-          style={{
-            background: "#fff8e1",
-            border: "2px solid #f57c00",
-            borderRadius: "10px",
-            padding: "18px",
-            marginTop: "20px",
-            marginBottom: "20px",
-            color: "#333",
-            textAlign: "left",
-          }}
-        >
-          <h3 style={{ color: "#d84315", marginBottom: "10px" }}>
-            ⚠️ Important AI Disclaimer
-          </h3>
-
-          <p>
-            This application uses Artificial Intelligence (AI) to summarize and
-            interpret documents.
-          </p>
-
-          <p style={{ marginTop: "10px" }}>
-            AI-generated responses may be inaccurate, incomplete, or omit important
-            information.
-          </p>
-
-          <p style={{ marginTop: "10px", fontWeight: "bold" }}>
-            Always verify important details using the original document before making
-            legal, medical, financial, educational, or government-related decisions.
-          </p>
         </div>
 
         {error && (
-          
           <div className="error-message">
             ⚠️ {error}
           </div>
@@ -177,7 +139,14 @@ ${document}`
             <h2>✅ Analysis Complete</h2>
 
             <div className="result-content">
-              <pre>{result}</pre>
+              <MarkdownRenderer text={result} />
+            </div>
+
+            <div className="human-review-note">
+              🧑 <strong>Human review recommended:</strong> This AI does not make final
+              decisions on your behalf. A caseworker, legal aid advisor, or qualified
+              professional should review any next steps that affect your housing, health,
+              or finances.
             </div>
 
             <button
@@ -196,22 +165,8 @@ ${document}`
 
       <footer>
         <p>Powered by Mistral AI | Built for clarity in crisis</p>
-
-        <p
-          style={{
-            marginTop: '10px',
-            fontSize: '12px',
-            maxWidth: '800px',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            opacity: 0.9,
-            lineHeight: '1.5',
-          }}
-        >
-          <strong>Disclaimer:</strong> This AI assistant may produce inaccurate,
-          incomplete, or outdated information. Always review the original
-          document and consult qualified professionals for legal, medical,
-          financial, or other important decisions.
+        <p style={{ marginTop: '8px', fontSize: '11px', opacity: 0.8 }}>
+          AI responses may be inaccurate. Always consult a qualified professional for important decisions.
         </p>
       </footer>
     </div>
