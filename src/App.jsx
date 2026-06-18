@@ -1,20 +1,233 @@
 import { useState } from 'react';
 import './App.css';
 
-function MarkdownRenderer({ text }) {
-  const lines = text.split('\n');
+const SAMPLE_DOCS = {
+  denial: `Dear Ms. Martinez,
+
+Your SNAP application has been DENIED.
+
+Reason: Your household income exceeds the limit.
+- Your income: $2,150/month
+- Maximum allowed: $1,868/month
+- You exceed the limit by: $282/month
+
+You have 10 days to appeal.
+Appeal deadline: June 20, 2026
+
+Questions: Call 1-800-SNAP-HELP`,
+
+  approval: `Dear Applicant,
+
+Your SNAP application has been APPROVED!
+
+Benefit amount: $450/month
+Effective date: June 15, 2026
+Recertification due: June 15, 2027
+
+You must recertify or your benefits will close automatically.
+
+Questions: Call 1-800-SNAP-HELP`,
+
+  reduction: `Dear Recipient,
+
+Your SNAP benefits have changed effective July 1, 2026.
+
+Previous benefit: $450/month
+New benefit: $125/month
+
+Reason: Your income increased.
+Your new income: $2,200/month
+Maximum allowed: $1,868/month
+
+If you believe this is wrong, call us within 10 days.
+
+Questions: Call 1-800-SNAP-HELP`
+};
+
+function parseSection(text) {
+  const sections = {};
+  const parts = text.split(/^###\s+/m);
+  parts.forEach(part => {
+    const newline = part.indexOf('\n');
+    if (newline === -1) return;
+    const title = part.slice(0, newline).trim().replace(/^[0-9]+\.\s*/, '').replace(/[⚠️]/g, '').trim();
+    const body = part.slice(newline + 1).trim();
+    sections[title.toUpperCase()] = body;
+  });
+  return sections;
+}
+
+function renderLines(text) {
+  return text.split('\n').map((line, i) => {
+    if (!line.trim()) return null;
+    if (line.startsWith('- [ ] ') || line.startsWith('* [ ] '))
+      return (
+        <label key={i} className="check-row">
+          <input type="checkbox" /> <span>{line.slice(6)}</span>
+        </label>
+      );
+    if (line.startsWith('- ') || line.startsWith('* '))
+      return <li key={i}>{renderBold(line.slice(2))}</li>;
+    return <p key={i}>{renderBold(line)}</p>;
+  });
+}
+
+function renderBold(text) {
+  const parts = text.split(/\*\*(.*?)\*\*/g);
+  return parts.map((p, i) => i % 2 === 1 ? <strong key={i}>{p}</strong> : p);
+}
+
+function getStatusStyle(body) {
+  const upper = body.toUpperCase();
+  if (upper.includes('APPROVED')) return 'status-approved';
+  if (upper.includes('DENIED')) return 'status-denied';
+  if (upper.includes('REDUCED')) return 'status-reduced';
+  if (upper.includes('VERIFICATION')) return 'status-verify';
+  return 'status-other';
+}
+
+function getStatusIcon(body) {
+  const upper = body.toUpperCase();
+  if (upper.includes('APPROVED')) return '✅';
+  if (upper.includes('DENIED')) return '❌';
+  if (upper.includes('REDUCED')) return '⚠️';
+  if (upper.includes('VERIFICATION')) return '📋';
+  return '❓';
+}
+
+function getUrgencyStyle(body) {
+  const upper = body.toUpperCase();
+  if (upper.startsWith('HIGH')) return 'urgency-high';
+  if (upper.startsWith('MEDIUM')) return 'urgency-medium';
+  return 'urgency-low';
+}
+
+function ResultCards({ text }) {
+  const sections = parseSection(text);
+
+  const STATUS_KEY = Object.keys(sections).find(k => k.includes('DECISION') || k.includes('STATUS'));
+  const SUMMARY_KEY = Object.keys(sections).find(k => k.includes('SUMMARY'));
+  const DEADLINE_KEY = Object.keys(sections).find(k => k.includes('DEADLINE'));
+  const FACTS_KEY = Object.keys(sections).find(k => k.includes('FACTS'));
+  const ACTIONS_KEY = Object.keys(sections).find(k => k.includes('MUST DO') || k.includes('ACTION'));
+  const URGENCY_KEY = Object.keys(sections).find(k => k.includes('URGENCY'));
+  const CONSEQUENCES_KEY = Object.keys(sections).find(k => k.includes("DON'T ACT") || k.includes('CONSEQUENCES'));
+  const HELP_KEY = Object.keys(sections).find(k => k.includes('HELP'));
+
   return (
-    <div className="markdown">
-      {lines.map((line, i) => {
-        if (line.startsWith('### ')) return <h3 key={i}>{line.slice(4)}</h3>;
-        if (line.startsWith('## ')) return <h2 key={i}>{line.slice(3)}</h2>;
-        if (line.startsWith('# ')) return <h1 key={i}>{line.slice(2)}</h1>;
-        if (line.startsWith('- [ ] ') || line.startsWith('* [ ] ')) return <label key={i} className="checkbox-item"><input type="checkbox" /> {line.slice(6)}</label>;
-        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i}>{line.slice(2)}</li>;
-        if (line.trim() === '') return <br key={i} />;
-        const bold = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        return <p key={i} dangerouslySetInnerHTML={{ __html: bold }} />;
-      })}
+    <div className="result-cards">
+
+      {/* Status badge */}
+      {STATUS_KEY && sections[STATUS_KEY] && (
+        <div className={`card status-card ${getStatusStyle(sections[STATUS_KEY])}`}>
+          <span className="status-icon">{getStatusIcon(sections[STATUS_KEY])}</span>
+          <div>
+            <div className="card-label">Decision Status</div>
+            <div className="status-text">{sections[STATUS_KEY]}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Summary */}
+      {SUMMARY_KEY && sections[SUMMARY_KEY] && (
+        <div className="card summary-card">
+          <div className="card-label">📄 Plain Language Summary</div>
+          <div className="card-body">{renderLines(sections[SUMMARY_KEY])}</div>
+        </div>
+      )}
+
+      {/* Deadline — most prominent */}
+      {DEADLINE_KEY && sections[DEADLINE_KEY] && (
+        <div className="card deadline-card">
+          <div className="card-label">⏰ Deadline — Do Not Miss</div>
+          <div className="card-body">{renderLines(sections[DEADLINE_KEY])}</div>
+        </div>
+      )}
+
+      {/* Two column row: Facts + Urgency */}
+      <div className="card-row">
+        {FACTS_KEY && sections[FACTS_KEY] && (
+          <div className="card facts-card">
+            <div className="card-label">📋 Key Facts</div>
+            <ul className="facts-list">{renderLines(sections[FACTS_KEY])}</ul>
+          </div>
+        )}
+        {URGENCY_KEY && sections[URGENCY_KEY] && (
+          <div className={`card urgency-card ${getUrgencyStyle(sections[URGENCY_KEY])}`}>
+            <div className="card-label">🚦 Urgency Level</div>
+            <div className="card-body">{renderLines(sections[URGENCY_KEY])}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Action checklist */}
+      {ACTIONS_KEY && sections[ACTIONS_KEY] && (
+        <div className="card actions-card">
+          <div className="card-label">✅ What You Must Do</div>
+          <div className="actions-list">{renderLines(sections[ACTIONS_KEY])}</div>
+        </div>
+      )}
+
+      {/* Consequences */}
+      {CONSEQUENCES_KEY && sections[CONSEQUENCES_KEY] && (
+        <div className="card consequences-card">
+          <div className="card-label">🚨 If You Don't Act</div>
+          <div className="card-body">{renderLines(sections[CONSEQUENCES_KEY])}</div>
+        </div>
+      )}
+
+      {/* Help */}
+      {HELP_KEY && sections[HELP_KEY] && (
+        <div className="card help-card">
+          <div className="card-label">🤝 Free Help Available</div>
+          <div className="card-body">{renderLines(sections[HELP_KEY])}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HITLCheckpoint({ onAllChecked }) {
+  const [checked, setChecked] = useState({
+    readOriginal: false,
+    verifiedDeadline: false,
+    understand: false,
+    hasPlan: false
+  });
+
+  const toggle = (key) => {
+    const updated = { ...checked, [key]: !checked[key] };
+    setChecked(updated);
+    onAllChecked(Object.values(updated).every(Boolean));
+  };
+
+  const items = [
+    { key: 'readOriginal', label: 'I have read the original letter (not just this summary)' },
+    { key: 'verifiedDeadline', label: 'I have verified the deadline matches my original letter' },
+    { key: 'understand', label: 'I understand why this decision was made' },
+    { key: 'hasPlan', label: 'I have a plan for what I want to do next' }
+  ];
+
+  const allDone = Object.values(checked).every(Boolean);
+
+  return (
+    <div className="hitl-checkpoint">
+      <h3>⚠️ Human Verification — Required</h3>
+      <p className="hitl-subtitle">AI can make mistakes. YOU must verify before taking action.</p>
+      <ul className="checklist">
+        {items.map(({ key, label }) => (
+          <li key={key}>
+            <label className="check-row">
+              <input type="checkbox" checked={checked[key]} onChange={() => toggle(key)} />
+              <span>{label}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      {allDone
+        ? <div className="hitl-ready">✅ You're ready to take action. See next steps below.</div>
+        : <div className="hitl-warning">Complete all checkboxes before proceeding.</div>
+      }
     </div>
   );
 }
@@ -24,64 +237,68 @@ function App() {
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [allVerified, setAllVerified] = useState(false);
 
   const handleAnalyze = async () => {
-    if (!document.trim()) {
-      setError('Please paste a document.');
-      return;
-    }
-
+    if (!document.trim()) { setError('Please paste a document.'); return; }
     setLoading(true);
     setError('');
     setResult('');
+    setAllVerified(false);
 
     try {
-      const response = await fetch(
-        'https://api.mistral.ai/v1/chat/completions',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_MISTRAL_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'mistral-small',
-            messages: [
-              {
-                role: 'user',
-                content: `You are a Crisis-to-Action Translator. Analyze this document and provide:
+      const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer XE9ifGku1vlFFg3i4Iutio3OrZapK3VS`,
+        },
+        body: JSON.stringify({
+          model: 'mistral-small',
+          messages: [{
+            role: 'user',
+            content: `You are a Crisis-to-Action Translator helping stressed families understand confusing government letters (like SNAP/food assistance, housing, medical, or school notices).
 
-1. PLAIN LANGUAGE SUMMARY (2 sentences max)
-2. KEY FACTS YOU NEED TO KNOW (5 bullet points max)
-3. WHAT YOU MUST DO (3-5 action items with checkboxes)
-4. DEADLINE (specific date or "Not specified")
-5. URGENCY LEVEL (High/Medium/Low)
-6. IF YOU DON'T ACT (consequences)
+Analyze this document and provide ALL of the following sections using exactly these headers. Use simple, kind language. Assume the reader is stressed.
 
-TONE: Simple, kind, clear. Assume the reader is stressed.
+### 1. PLAIN LANGUAGE SUMMARY
+2-3 sentences. What does this letter mean in simple terms?
+
+### 2. DECISION STATUS
+One line: APPROVED / DENIED / REDUCED / VERIFICATION NEEDED — and what it means simply.
+
+### 3. ⚠️ DEADLINE — DO NOT MISS
+Exact date. Days remaining. What happens if missed.
+
+### 4. KEY FACTS
+Up to 5 bullet points with the most important numbers or facts.
+
+### 5. WHAT YOU MUST DO
+3-5 action items as checkboxes using "- [ ]" format. Most urgent first.
+
+### 6. URGENCY LEVEL
+Start with: High / Medium / Low. Then explain why in one sentence.
+
+### 7. IF YOU DON'T ACT
+2-3 bullet points on real consequences for this family.
+
+### 8. FREE HELP AVAILABLE
+Call 211 for free legal aid. Any specific numbers from the letter.
 
 DOCUMENT:
 ${document}`
-              }
-            ],
-            max_tokens: 1500
-          })
-        }
-      );
+          }],
+          max_tokens: 1500
+        })
+      });
 
       const data = await response.json();
-
-      if (data.error) {
-        setError(data.error.message || 'API error');
-        return;
-      }
-
+      if (data.error) { setError(data.error.message || 'API error'); return; }
       setResult(data.choices[0].message.content);
     } catch (err) {
       console.error(err);
-      setError('Network error. Please check your internet connection.');
+      setError('Network error. Check your internet connection.');
     }
-
     setLoading(false);
   };
 
@@ -90,75 +307,65 @@ ${document}`
       <header>
         <h1>Crisis-to-Action Translator</h1>
         <p>Turn confusing documents into clear action plans</p>
-
         <div className="persona-box">
-          <strong>👤 Who this is for:</strong> People like Maria — a single mom who just
-          received a 4-page housing assistance denial letter full of legal language. She
-          doesn't know if she can appeal, what the deadline is, or what to do next.
-          Paste in any confusing document and we'll break it down into plain language
-          and clear next steps.
+          <strong>👤 Built for families like Maria's</strong> — a single mom who received
+          a 4-page SNAP denial letter full of legal language. She doesn't know if she can
+          appeal, what the deadline is, or what to do next. Paste any confusing government
+          letter and we'll break it into plain language and clear next steps.
         </div>
       </header>
 
       <main>
         <div className="input-section">
           <label htmlFor="document">Paste your document here:</label>
-
+          <div className="sample-buttons">
+            <span className="sample-label">Try a sample:</span>
+            <button className="sample-btn" onClick={() => setDocument(SAMPLE_DOCS.denial)}>SNAP Denial</button>
+            <button className="sample-btn" onClick={() => setDocument(SAMPLE_DOCS.approval)}>SNAP Approval</button>
+            <button className="sample-btn" onClick={() => setDocument(SAMPLE_DOCS.reduction)}>Benefits Reduced</button>
+          </div>
           <textarea
             id="document"
             value={document}
             onChange={(e) => setDocument(e.target.value)}
-            placeholder="Paste any document: government letter, medical notice, school form, bill, eviction notice, etc."
+            placeholder="Paste any document: SNAP letter, eviction notice, hospital form, school letter..."
             rows="10"
           />
-
           <div className="disclaimer-box">
-            <strong>⚠️ Important:</strong> This AI summarizes documents to help you
-            understand them — it does not provide legal, medical, or financial advice.
-            Always verify details with the original document and consult a qualified
-            professional before making important decisions.
+            <strong>⚠️ Important:</strong> This AI translates documents to help you understand them —
+            it does NOT provide legal, medical, or financial advice. Always verify with the original
+            document. For free help, call <strong>211</strong>.
           </div>
-
-          <button
-            onClick={handleAnalyze}
-            disabled={loading}
-            className="analyze-button"
-          >
+          <button onClick={handleAnalyze} disabled={loading} className="analyze-button">
             {loading ? 'Analyzing...' : 'Analyze Document'}
           </button>
         </div>
 
-        {error && (
-          <div className="error-message">
-            ⚠️ {error}
-          </div>
-        )}
+        {error && <div className="error-message">⚠️ {error}</div>}
 
         {result && (
           <div className="result-section">
             <h2>✅ Analysis Complete</h2>
-
-            <div className="result-content">
-              <MarkdownRenderer text={result} />
+            <ResultCards text={result} />
+            <HITLCheckpoint onAllChecked={setAllVerified} />
+            {allVerified && (
+              <div className="next-steps-box">
+                <h3>📞 Your Next Steps</h3>
+                <p><strong>Step 1:</strong> Call the office listed in your letter to confirm and ask questions.</p>
+                <p><strong>Step 2:</strong> Call <strong>211</strong> for free legal aid or SNAP assistance.</p>
+                <p><strong>Step 3:</strong> Take action before your deadline. Don't wait.</p>
+                <a href="tel:211" className="call-button">📞 Call 211 for Free Help</a>
+              </div>
+            )}
+            <div className="legal-limits">
+              <h3>⚖️ What This App Cannot Do</h3>
+              <p>✗ Provide legal advice &nbsp;|&nbsp; ✗ Guarantee outcomes &nbsp;|&nbsp; ✗ Replace the official office &nbsp;|&nbsp; ✗ Submit appeals for you</p>
+              <p style={{ marginTop: '8px' }}><strong>Only a real person or legal professional can make final decisions for your situation.</strong></p>
             </div>
-
-            <div className="human-review-note">
-              🧑 <strong>Human review recommended:</strong> This AI does not make final
-              decisions on your behalf. A caseworker, legal aid advisor, or qualified
-              professional should review any next steps that affect your housing, health,
-              or finances.
-            </div>
-
             <button
-              onClick={() => {
-                setDocument('');
-                setResult('');
-                setError('');
-              }}
+              onClick={() => { setDocument(''); setResult(''); setError(''); setAllVerified(false); }}
               className="reset-button"
-            >
-              Analyze Another Document
-            </button>
+            >Analyze Another Document</button>
           </div>
         )}
       </main>
@@ -166,7 +373,7 @@ ${document}`
       <footer>
         <p>Powered by Mistral AI | Built for clarity in crisis</p>
         <p style={{ marginTop: '8px', fontSize: '11px', opacity: 0.8 }}>
-          AI responses may be inaccurate. Always consult a qualified professional for important decisions.
+          AI responses may be inaccurate. Always consult a qualified professional. Free help: call 211.
         </p>
       </footer>
     </div>
