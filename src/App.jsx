@@ -1,49 +1,6 @@
 import { useState } from 'react';
 import './App.css';
 
-const SAMPLE_DOCS = {
-  denial: `Dear Ms. Martinez,
-
-Your SNAP application has been DENIED.
-
-Reason: Your household income exceeds the limit.
-- Your income: $2,150/month
-- Maximum allowed: $1,868/month
-- You exceed the limit by: $282/month
-
-You have 10 days to appeal.
-Appeal deadline: June 20, 2026
-
-Questions: Call 1-800-SNAP-HELP`,
-
-  approval: `Dear Applicant,
-
-Your SNAP application has been APPROVED!
-
-Benefit amount: $450/month
-Effective date: June 15, 2026
-Recertification due: June 15, 2027
-
-You must recertify or your benefits will close automatically.
-
-Questions: Call 1-800-SNAP-HELP`,
-
-  reduction: `Dear Recipient,
-
-Your SNAP benefits have changed effective July 1, 2026.
-
-Previous benefit: $450/month
-New benefit: $125/month
-
-Reason: Your income increased.
-Your new income: $2,200/month
-Maximum allowed: $1,868/month
-
-If you believe this is wrong, call us within 10 days.
-
-Questions: Call 1-800-SNAP-HELP`
-};
-
 function parseSection(text) {
   const sections = {};
   const parts = text.split(/^###\s+/m);
@@ -117,7 +74,6 @@ function ResultCards({ text }) {
   return (
     <div className="result-cards">
 
-      {/* Status badge */}
       {STATUS_KEY && sections[STATUS_KEY] && (
         <div className={`card status-card ${getStatusStyle(sections[STATUS_KEY])}`}>
           <span className="status-icon">{getStatusIcon(sections[STATUS_KEY])}</span>
@@ -128,7 +84,6 @@ function ResultCards({ text }) {
         </div>
       )}
 
-      {/* Summary */}
       {SUMMARY_KEY && sections[SUMMARY_KEY] && (
         <div className="card summary-card">
           <div className="card-label">📄 Plain Language Summary</div>
@@ -136,7 +91,6 @@ function ResultCards({ text }) {
         </div>
       )}
 
-      {/* Deadline — most prominent */}
       {DEADLINE_KEY && sections[DEADLINE_KEY] && (
         <div className="card deadline-card">
           <div className="card-label">⏰ Deadline — Do Not Miss</div>
@@ -144,7 +98,6 @@ function ResultCards({ text }) {
         </div>
       )}
 
-      {/* Two column row: Facts + Urgency */}
       <div className="card-row">
         {FACTS_KEY && sections[FACTS_KEY] && (
           <div className="card facts-card">
@@ -160,7 +113,6 @@ function ResultCards({ text }) {
         )}
       </div>
 
-      {/* Action checklist */}
       {ACTIONS_KEY && sections[ACTIONS_KEY] && (
         <div className="card actions-card">
           <div className="card-label">✅ What You Must Do</div>
@@ -168,7 +120,6 @@ function ResultCards({ text }) {
         </div>
       )}
 
-      {/* Consequences */}
       {CONSEQUENCES_KEY && sections[CONSEQUENCES_KEY] && (
         <div className="card consequences-card">
           <div className="card-label">🚨 If You Don't Act</div>
@@ -176,7 +127,6 @@ function ResultCards({ text }) {
         </div>
       )}
 
-      {/* Help */}
       {HELP_KEY && sections[HELP_KEY] && (
         <div className="card help-card">
           <div className="card-label">🤝 Free Help Available</div>
@@ -305,7 +255,7 @@ ${document}`
   return (
     <div className="App">
       <header>
-        <h1>Crisis-to-Action Translator</h1>
+        <h1>Lucidify SNAP</h1>
         <p>Turn confusing documents into clear action plans</p>
         <div className="persona-box">
           <strong>👤 Built for families like Maria's</strong> — a single mom who received
@@ -317,18 +267,12 @@ ${document}`
 
       <main>
         <div className="input-section">
-          <label htmlFor="document">Paste your document here:</label>
-          <div className="sample-buttons">
-            <span className="sample-label">Try a sample:</span>
-            <button className="sample-btn" onClick={() => setDocument(SAMPLE_DOCS.denial)}>SNAP Denial</button>
-            <button className="sample-btn" onClick={() => setDocument(SAMPLE_DOCS.approval)}>SNAP Approval</button>
-            <button className="sample-btn" onClick={() => setDocument(SAMPLE_DOCS.reduction)}>Benefits Reduced</button>
-          </div>
+          <label htmlFor="document">Paste your SNAP letter to Lucidify your document:</label>
           <textarea
             id="document"
             value={document}
             onChange={(e) => setDocument(e.target.value)}
-            placeholder="Paste any document: SNAP letter, eviction notice, hospital form, school letter..."
+            placeholder="Paste your SNAP letter here..."
             rows="10"
           />
           <div className="disclaimer-box">
