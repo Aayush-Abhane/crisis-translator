@@ -255,7 +255,7 @@ ${document}`
   return (
     <div className="App">
       <header>
-        <h1>Lucidify SNAP</h1>
+        <h1>Lucify</h1>
         <p>Turn confusing documents into clear action plans</p>
         <div className="persona-box">
           <strong>👤 Built for families like Maria's</strong> — a single mom who received
@@ -267,7 +267,7 @@ ${document}`
 
       <main>
         <div className="input-section">
-          <label htmlFor="document">Paste your SNAP letter to Lucidify your document:</label>
+          <label htmlFor="document">Paste your SNAP letter to Lucify your document:</label>
           <textarea
             id="document"
             value={document}
@@ -315,7 +315,7 @@ ${document}`
       </main>
 
       <footer>
-        <p>Powered by Mistral AI | Built for clarity in crisis</p>
+        <p>Powered by Mistral AI | Lucify — Built for clarity in crisis</p>
         <p style={{ marginTop: '8px', fontSize: '11px', opacity: 0.8 }}>
           AI responses may be inaccurate. Always consult a qualified professional. Free help: call 211.
         </p>
