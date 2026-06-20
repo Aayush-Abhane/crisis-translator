@@ -67,6 +67,17 @@ function getStatusIcon(body) {
 
 }
 
+function parseConfidence(body) {
+  const match = body.match(/Confidence:\s*(\d+)%/i);
+  if (!match) return null;
+  const raw = parseInt(match[1], 10);
+  return Math.max(10, Math.min(95, raw - 10)); // −10 to correct LLM overconfidence bias
+}
+
+function getStatusBodyWithoutConfidence(body) {
+  return body.replace(/\n?Confidence:\s*\d+%[^\n]*/i, '').trim();
+}
+
 function getUrgencyStyle(body) {
   const upper = body.toUpperCase();
   if (upper.startsWith('HIGH')) return 'urgency-high';
@@ -74,7 +85,7 @@ function getUrgencyStyle(body) {
   return 'urgency-low';
 }
 
-function ResultCards({ text }) {
+function ResultCards({ text, doc }) {
   const sections = parseSection(text);
 
   const STATUS_KEY = Object.keys(sections).find(k => k.includes('DECISION') || k.includes('STATUS'));
@@ -90,15 +101,35 @@ function ResultCards({ text }) {
   return (
     <div className="result-cards">
 
-      {STATUS_KEY && sections[STATUS_KEY] && (
-        <div className={`card status-card ${getStatusStyle(sections[STATUS_KEY])}`}>
-          <span className="status-icon">{getStatusIcon(sections[STATUS_KEY])}</span>
-          <div>
-            <div className="card-label">📋 Decision Status</div>
-            <div className="status-text"><strong>{sections[STATUS_KEY]}</strong></div>
-          </div>
-        </div>
-      )}
+      {STATUS_KEY && sections[STATUS_KEY] && (() => {
+        const rawBody = sections[STATUS_KEY];
+        const confidence = parseConfidence(rawBody);
+        const cleanBody = getStatusBodyWithoutConfidence(rawBody);
+        const isLowConfidence = confidence !== null && confidence < 75;
+        return (
+          <>
+            <div className={`card status-card ${getStatusStyle(rawBody)}`}>
+              <span className="status-icon">{getStatusIcon(rawBody)}</span>
+              <div className="status-card-content">
+                <div className="status-label-row">
+                  <div className="card-label">📋 Decision Status</div>
+                  {confidence !== null && (
+                    <div className={`confidence-badge ${isLowConfidence ? 'confidence-low' : 'confidence-high'}`}>
+                      {isLowConfidence ? '⚠️' : '🎯'} {confidence}% confident
+                    </div>
+                  )}
+                </div>
+                <div className="status-text"><strong>{cleanBody}</strong></div>
+              </div>
+            </div>
+            {isLowConfidence && (
+              <div className="confidence-warning">
+                ⚠️ <strong>Low confidence ({confidence}%).</strong> The AI was not fully certain about this decision. Please verify by reading your original document carefully.
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {SUMMARY_KEY && sections[SUMMARY_KEY] && (
         <div className="card summary-card">
@@ -375,9 +406,235 @@ function App() {
   const [allVerified, setAllVerified] = useState(false);
 
   const sampleLetters = {
-    denial: `Dear Household Member,\n\nThis letter is to inform you that your SNAP benefits are being denied for the month of July 2026 because your household income is above the allowable limit for this program.\n\nYou may request a fair hearing if you disagree with this decision. Please review the information carefully and contact your local office if you have questions.\n\nSincerely,\nDepartment of Human Services`,
-    reduction: `Dear Participant,\n\nWe are writing to notify you that your SNAP benefits will be reduced beginning next month. This change is based on updated information about your household income and expenses.\n\nPlease review your case details and submit any documents that may affect your eligibility. If you believe this decision is incorrect, you may appeal before the deadline listed on this notice.\n\nThank you,\nBenefits Office`,
-    verification: `Dear Client,\n\nYour SNAP case is being reviewed because we need additional information to verify your household circumstances. Please send proof of income, rent, and utility expenses by the date listed on this notice.\n\nIf we do not receive the requested documents on time, your benefits may be delayed or reduced.\n\nOffice of Benefits Services`
+    denial: `STATE BENEFITS ADMINISTRATION
+SUPPLEMENTAL NUTRITION ASSISTANCE PROGRAM (SNAP)
+SNAP Decision Notice
+
+Case Number: 123456789
+Date of Notice: June 20, 2026
+Recipient Name: Maria Santos
+Address: 456 Oak Street, New York, NY 10001
+
+DECISION: APPLICATION DENIED
+
+Dear Ms. Santos,
+
+Your application for Supplemental Nutrition Assistance Program (SNAP) benefits has been reviewed and DENIED effective June 20, 2026.
+
+REASON FOR DENIAL:
+
+Your household's monthly gross income of $2,150 exceeds the maximum allowable income for a household of 3 persons. The maximum allowable monthly gross income for your household size is $1,868 per month.
+
+MONTHLY INCOME CALCULATION:
+Your income:           $2,150.00
+Maximum allowed:       $1,868.00
+Amount over limit:     $282.00
+
+Your application does not meet the financial eligibility requirements pursuant to 7 CFR § 273.2 and New York Social Services Law § 131(3)(a).
+
+YOUR APPEAL RIGHTS:
+
+You have the right to appeal this decision. You may request a fair hearing to challenge this decision.
+
+DEADLINE TO REQUEST HEARING: You must request a hearing within thirty (30) days of the date this notice was issued.`,
+
+    actionRequired: `URGENT: ACTION REQUIRED TO KEEP BENEFITS
+SNAP Case Alert Notice
+
+Case Number: 111222333
+Date: June 12, 2026
+Recipient: Marcus Brown
+Household Size: 4
+Address: 333 Martin Luther King Jr. Blvd, Harlem, NY 10030
+
+ACTION REQUIRED - URGENT
+
+Dear Mr. Brown,
+
+YOUR SNAP BENEFITS WILL END UNLESS YOU ACT IMMEDIATELY.
+
+CURRENT STATUS: ACTION REQUIRED (Urgent)
+
+Your benefits: $412 per month (at risk)
+Time to act: 5 DAYS (until June 17, 2026)
+Consequence: Loss of all benefits if you don't respond
+
+WHAT YOU MUST DO IMMEDIATELY:
+
+You received a Recertification Notice on May 20, 2026.
+You were required to return the form by June 5, 2026.
+WE DID NOT RECEIVE YOUR RESPONSE.
+
+Action Required:
+Return your Recertification Form OR
+Call 1-800-555-SNAP by June 17, 2026
+
+IF YOU DID NOT RECEIVE THE FORM:
+Call immediately: 1-800-555-SNAP
+We will send a new form or help you over the phone.
+
+WHAT WILL HAPPEN IF YOU DON'T ACT BY JUNE 17:
+June 18, 2026: Your EBT card will stop working
+June 18, 2026: No more benefits will be loaded
+July 1, 2026: Your case will be permanently closed
+RESULT: You must reapply from scratch
+
+DEADLINES APPROACHING:
+Today: June 12, 2026
+ACTION DEADLINE: June 17, 2026 (5 days left!)
+SUSPENSION DATE: June 18, 2026
+CASE CLOSURE: July 1, 2026
+
+QUESTIONS?
+Call: 1-800-555-SNAP
+TTY: 1-800-555-5050
+Your Caseworker: Anthony Davis
+Phone: 212-555-SNAP ext. 789
+Hours: Monday-Friday, 7am-7pm
+
+State Benefits Administration`,
+
+    pending: `SNAP APPLICATION PENDING
+Supplemental Nutrition Assistance Program
+
+Case Number: 777888999
+Date: June 15, 2026
+Applicant: Sarah Johnson
+Household Size: 2
+Address: 888 Ocean Drive, Queens, NY 11375
+
+APPLICATION STATUS: PENDING - UNDER REVIEW
+
+Dear Ms. Johnson,
+
+Your SNAP application submitted on June 1, 2026 is currently being reviewed.
+
+CURRENT STATUS: PENDING
+
+Your application is under review. We expect to make a decision by July 1, 2026.
+
+WHAT WE'RE DOING:
+Your application is in the final stages of review. We have:
+- Received your application
+- Verified your identity and Social Security number
+- Reviewed your income documentation
+- Currently: Verifying employment with your employer ABC Manufacturing
+- Currently: Calculating your benefit amount
+
+WHAT WE'RE WAITING FOR:
+We sent a verification request to your employer, ABC Manufacturing.
+We expect their response by June 23, 2026.
+
+EXPECTED DECISION DATE: July 1, 2026
+
+ESTIMATED BENEFIT (if approved):
+Based on information provided, your estimated benefit would be approximately:
+$156-234 per month for household of 2
+
+QUESTIONS DURING REVIEW?
+Call: 1-800-555-SNAP
+Hours: Monday-Friday, 8am-5pm
+Your Caseworker: Robert Martinez
+Phone: 718-555-SNAP ext. 342
+
+State Benefits Administration`,
+
+    suspended: `SNAP CASE SUSPENSION NOTICE
+Supplemental Nutrition Assistance Program
+
+Case Number: 666777888
+Date: June 16, 2026
+Recipient: Patricia Williams
+Household Size: 3
+Address: 555 Broadway, Brooklyn, NY 11201
+
+BENEFITS SUSPENDED - PENDING VERIFICATION
+
+Dear Ms. Williams,
+
+Your SNAP benefits have been SUSPENDED effective immediately pending verification of household information.
+
+BENEFIT STATUS: SUSPENDED
+
+Current Benefits: $267 per month (as of June 15, 2026)
+Suspended Date: June 16, 2026
+Expected Resolution: July 16, 2026 (30 days)
+
+REASON FOR SUSPENSION:
+During a recent review, we discovered inconsistencies in your household information. We need updated documentation to verify:
+1. Current household composition (who lives in your home?)
+2. Current income for all household members
+3. Employment status of all adults
+4. Household expenses (rent, utilities, childcare)
+
+WHAT YOU MUST DO:
+Within 10 days (by June 26, 2026), provide:
+1. List of all household members and their ages
+2. Proof of income for all working members (recent pay stubs - last 2 months)
+3. Proof of rent/mortgage payment
+4. Proof of utilities paid
+
+Mail to: SNAP Processing Center, 456 Government Drive, Brooklyn, NY 10001
+Or bring in person: Community Services, 555 Broadway, Brooklyn, NY 11201
+Hours: Mon-Fri, 9am-4pm
+
+IF YOU PROVIDE INFORMATION BY JUNE 26:
+Your case will be reviewed within 5 business days.
+Benefits will restart (with back payments if appropriate).
+
+IF YOU DO NOT PROVIDE INFORMATION:
+Your case will be CLOSED.
+
+State Benefits Administration`,
+
+    approved: `STATE BENEFITS ADMINISTRATION
+SUPPLEMENTAL NUTRITION ASSISTANCE PROGRAM (SNAP)
+OFFICIAL NOTICE OF DECISION
+
+Case Number: 555888999
+Date of Notice: June 20, 2026
+Recipient Name: Angela Martinez
+Household Size: 2 (Parent and Child, Age 7)
+Address: 321 Oak Lane, Brooklyn, NY 11205
+
+APPLICATION APPROVED - BENEFITS GRANTED
+
+Dear Ms. Martinez,
+
+Your application for Supplemental Nutrition Assistance Program (SNAP) benefits has been APPROVED.
+
+YOUR SNAP BENEFITS:
+Monthly Benefit Amount: $234.00
+Number of Household Members: 2
+Benefit Period: July 1, 2026 to July 31, 2026
+Effective Date: July 1, 2026
+
+IMPORTANT INFORMATION:
+Your EBT card will be mailed to the address on file within 7-10 business days.
+Your benefits will be loaded on your card on the 1st of each month.
+
+INCOME AND HOUSEHOLD INFORMATION:
+Your application was approved based on:
+- Household monthly income: $1,450.00
+- Household size: 2 people
+- Your income qualifies for food assistance benefits
+
+NEXT STEPS:
+1. Receive your EBT Card (within 7-10 days by mail)
+2. Create a PIN number (4 digits)
+3. Begin using your card on July 1, 2026
+4. Your benefits will be added monthly
+
+IMPORTANT DATES:
+Start Date: July 1, 2026
+Recertification Due: January 1, 2027 (6 months from approval)
+
+QUESTIONS OR PROBLEMS?
+Call SNAP Hotline: 1-800-555-SNAP
+Hours: Monday-Friday, 8:00 AM - 5:00 PM
+Website: www.state.benefits.gov
+
+State Benefits Administration`
   };
 
   const readFileAsText = (file) => {
@@ -479,7 +736,14 @@ Analyze this document and respond using EXACTLY these section headers. Use simpl
 2-3 sentences: What does this letter mean in plain terms?
 
 ### 2. DECISION STATUS
-One line: APPROVED / DENIED / REDUCED / VERIFICATION NEEDED — and what it means simply.
+Line 1: APPROVED / DENIED / REDUCED / VERIFICATION NEEDED — and what it means simply.
+Line 2: Confidence: [number]% — your honest confidence in this reading. Use this scale strictly:
+  - 90-95%: decision is explicitly stated in a clear header (e.g. "APPLICATION DENIED", "BENEFITS APPROVED")
+  - 75-89%: decision is clearly written in the body but not as a formal header
+  - 60-74%: decision can be inferred but language is somewhat ambiguous or indirect
+  - 40-59%: document is pending, outcome uncertain, or key details are missing
+  - below 40%: document is very unclear, contradictory, or unrelated to benefits
+  Do NOT default to 90%+. Most documents should score 70-88%.
 
 ### 3. AI ANALYSIS THOUGHTS
 2-3 sentences explaining how you read this letter and what you focused on. Be transparent about your reasoning.
@@ -551,14 +815,14 @@ ${doc}`
         <div className="input-section">
           <label htmlFor="document">Paste your SNAP letter to get a plain-language summary:</label>
           <div className="sample-banner">
-            <strong>Reference Examples:</strong>
-            <span>
-              <button className="sample-link" onClick={() => loadSampleLetter('denial')}>SNAP Denial Notice</button>
-              <span>·</span>
-              <button className="sample-link" onClick={() => loadSampleLetter('reduction')}>Benefit Reduction Letter</button>
-              <span>·</span>
-              <button className="sample-link" onClick={() => loadSampleLetter('verification')}>Verification Request</button>
-            </span>
+            <span className="sample-banner-label">Try an example:</span>
+            <div className="sample-pills">
+              <button className="sample-pill pill-denied"  onClick={() => loadSampleLetter('denial')}>❌ Denial Notice</button>
+              <button className="sample-pill pill-urgent"  onClick={() => loadSampleLetter('actionRequired')}>⚠️ Action Required</button>
+              <button className="sample-pill pill-pending" onClick={() => loadSampleLetter('pending')}>🔵 Pending Review</button>
+              <button className="sample-pill pill-suspended" onClick={() => loadSampleLetter('suspended')}>⏸ Benefits Suspended</button>
+              <button className="sample-pill pill-approved" onClick={() => loadSampleLetter('approved')}>✅ Approved</button>
+            </div>
           </div>
           <textarea
             id="document"
@@ -601,7 +865,7 @@ ${doc}`
         {result && (
           <div className="result-section">
             <h2>✅ Analysis Complete</h2>
-            <ResultCards text={result} />
+            <ResultCards text={result} doc={doc} />
             <HITLCheckpoint onAllChecked={setAllVerified} />
             {allVerified && (
               <>
