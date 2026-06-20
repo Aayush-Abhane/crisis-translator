@@ -95,7 +95,7 @@ function ResultCards({ text }) {
           <span className="status-icon">{getStatusIcon(sections[STATUS_KEY])}</span>
           <div>
             <div className="card-label">📋 Decision Status</div>
-            <div className="status-text">{sections[STATUS_KEY]}</div>
+            <div className="status-text"><strong>{sections[STATUS_KEY]}</strong></div>
           </div>
         </div>
       )}
@@ -203,7 +203,7 @@ function HITLCheckpoint({ onAllChecked }) {
 
   return (
     <section className="hitl-checkpoint">
-      <h3 className="hitl-title">⚠️ HUMAN VERIFICATION — REQUIRED</h3>
+      <h3 className="hitl-title">⚠️ Human Verification — Required</h3>
       <p className="hitl-subtitle">
         AI can make mistakes. YOU must verify before taking action.
       </p>
@@ -374,9 +374,77 @@ function App() {
   const [error, setError] = useState('');
   const [allVerified, setAllVerified] = useState(false);
 
+  const sampleLetters = {
+    denial: `Dear Household Member,\n\nThis letter is to inform you that your SNAP benefits are being denied for the month of July 2026 because your household income is above the allowable limit for this program.\n\nYou may request a fair hearing if you disagree with this decision. Please review the information carefully and contact your local office if you have questions.\n\nSincerely,\nDepartment of Human Services`,
+    reduction: `Dear Participant,\n\nWe are writing to notify you that your SNAP benefits will be reduced beginning next month. This change is based on updated information about your household income and expenses.\n\nPlease review your case details and submit any documents that may affect your eligibility. If you believe this decision is incorrect, you may appeal before the deadline listed on this notice.\n\nThank you,\nBenefits Office`,
+    verification: `Dear Client,\n\nYour SNAP case is being reviewed because we need additional information to verify your household circumstances. Please send proof of income, rent, and utility expenses by the date listed on this notice.\n\nIf we do not receive the requested documents on time, your benefits may be delayed or reduced.\n\nOffice of Benefits Services`
+  };
+
+  const readFileAsText = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || '');
+      reader.onerror = () => reject(new Error('Unable to read file.'));
+      reader.readAsText(file);
+    });
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await readFileAsText(file);
+      setDoc(text);
+      setError('');
+    } catch (err) {
+      setError('Unable to read the selected file. Please try another file.');
+    }
+  };
+
+  const loadSampleLetter = (key) => {
+    setDoc(sampleLetters[key]);
+    setError('');
+  };
+
+  const isLikelySnapLetter = (text) => {
+    const normalized = text.toLowerCase();
+    const snapKeywords = [
+      'snap',
+      'supplemental nutrition assistance',
+      'food assistance',
+      'nutrition assistance',
+      'ebt',
+      'food benefits'
+    ];
+    const snapSignals = [
+      'benefit',
+      'benefits',
+      'household',
+      'income',
+      'eligibility',
+      'appeal',
+      'denial',
+      'reduction',
+      'verification',
+      'notice',
+      'application',
+      'recertification'
+    ];
+
+    const hasSnapKeyword = snapKeywords.some(keyword => normalized.includes(keyword));
+    const hasSnapSignal = snapSignals.some(signal => normalized.includes(signal));
+
+    return hasSnapKeyword && hasSnapSignal;
+  };
+
   const handleAnalyze = async () => {
     if (!doc.trim()) { setError('Please paste a document.'); return; }
     if (doc.length < 50) { setError('Document is too short. Please paste the full letter.'); return; }
+    if (!isLikelySnapLetter(doc)) {
+      setError('This does not look like a SNAP letter. Please paste a SNAP or food assistance notice.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -481,7 +549,17 @@ ${doc}`
 
       <main>
         <div className="input-section">
-          <label htmlFor="document">Paste your SNAP letter to Lucify your document:</label>
+          <label htmlFor="document">Paste your SNAP letter to get a plain-language summary:</label>
+          <div className="sample-banner">
+            <strong>Reference Examples:</strong>
+            <span>
+              <button className="sample-link" onClick={() => loadSampleLetter('denial')}>SNAP Denial Notice</button>
+              <span>·</span>
+              <button className="sample-link" onClick={() => loadSampleLetter('reduction')}>Benefit Reduction Letter</button>
+              <span>·</span>
+              <button className="sample-link" onClick={() => loadSampleLetter('verification')}>Verification Request</button>
+            </span>
+          </div>
           <textarea
             id="document"
             value={doc}
@@ -489,6 +567,18 @@ ${doc}`
             placeholder="Paste your SNAP letter here..."
             rows="10"
           />
+          <div className="action-row">
+            <div className="upload-row">
+              <label className="upload-button" htmlFor="file-upload">📁 Choose File</label>
+              <input
+                id="file-upload"
+                type="file"
+                accept=".txt,.pdf,.doc,.docx"
+                onChange={handleFileUpload}
+              />
+            </div>
+            <button type="button" className="clear-button" onClick={() => setDoc('')}>Clear Text</button>
+          </div>
           <div className="disclaimer-box">
             <strong>⚠️ Important:</strong> This AI translates documents to help you understand them —
             it does NOT provide legal, medical, or financial advice. Always verify with the original
