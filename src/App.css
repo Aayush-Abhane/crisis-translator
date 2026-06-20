@@ -271,9 +271,18 @@ main { max-width: 900px; margin: 0 auto; }
 
 /* Consequences */
 .consequences-card { background: #fff2e8; border-color: #ffbb96; border-left: 4px solid #ff7a45; }
-.consequences-card .card-label { color: #d4380d; }
+.consequences-card .card-label {
+  color: #d4380d;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
 .consequences-card .card-body p,
-.consequences-card .card-body li { color: #7c2d12; font-size: 14px; }
+.consequences-card .card-body li {
+  color: #7c2d12;
+  font-size: 15px;
+  text-align: left;
+}
 
 /* Help */
 .help-card { background: #e6fffb; border-color: #87e8de; border-left: 4px solid #13c2c2; }
