@@ -469,7 +469,7 @@ ${doc}`
   return (
     <div className="App">
       <header>
-        <h1>Lucify</h1>
+        <h1>Lucify SNAP</h1>
         <p>Turn confusing documents into clear action plans</p>
         <div className="persona-box">
           <strong>👤 Built for families like Maria's</strong> — a single mom who received
