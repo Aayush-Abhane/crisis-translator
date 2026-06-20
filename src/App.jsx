@@ -34,6 +34,22 @@ function renderBold(text) {
   return parts.map((p, i) => i % 2 === 1 ? <strong key={i}>{p}</strong> : p);
 }
 
+function renderUrgencyText(text) {
+  return text.split('\n').map((line, i) => {
+    if (!line.trim()) return null;
+    const match = line.match(/^(High|Medium|Low)\b[\s.:-]*(.*)$/i);
+    if (match) {
+      return (
+        <p key={i}>
+          <strong>{match[1]}</strong>
+          {match[2] ? ` ${match[2]}` : ''}
+        </p>
+      );
+    }
+    return <p key={i}>{renderBold(line)}</p>;
+  });
+}
+
 function getStatusStyle(body) {
   const upper = body.toUpperCase();
   if (upper.includes('APPROVED')) return 'status-approved';
@@ -48,8 +64,7 @@ function getStatusIcon(body) {
   if (upper.includes('APPROVED')) return '✅';
   if (upper.includes('DENIED')) return '❌';
   if (upper.includes('REDUCED')) return '⚠️';
-  if (upper.includes('VERIFICATION')) return '📋';
-  return '❓';
+
 }
 
 function getUrgencyStyle(body) {
@@ -79,7 +94,7 @@ function ResultCards({ text }) {
         <div className={`card status-card ${getStatusStyle(sections[STATUS_KEY])}`}>
           <span className="status-icon">{getStatusIcon(sections[STATUS_KEY])}</span>
           <div>
-            <div className="card-label">Decision Status</div>
+            <div className="card-label">📋 Decision Status</div>
             <div className="status-text">{sections[STATUS_KEY]}</div>
           </div>
         </div>
@@ -117,7 +132,7 @@ function ResultCards({ text }) {
         {URGENCY_KEY && sections[URGENCY_KEY] && (
           <div className={`card urgency-card ${getUrgencyStyle(sections[URGENCY_KEY])}`}>
             <div className="card-label">🚦 Urgency Level</div>
-            <div className="card-body">{renderLines(sections[URGENCY_KEY])}</div>
+            <div className="card-body">{renderUrgencyText(sections[URGENCY_KEY])}</div>
           </div>
         )}
       </div>
@@ -136,12 +151,7 @@ function ResultCards({ text }) {
         </div>
       )}
 
-      {HELP_KEY && sections[HELP_KEY] && (
-        <div className="card help-card">
-          <div className="card-label">🤝 Free Help Available</div>
-          <div className="card-body">{renderLines(sections[HELP_KEY])}</div>
-        </div>
-      )}
+
     </div>
   );
 }
@@ -162,35 +172,68 @@ function HITLCheckpoint({ onAllChecked }) {
   };
 
   const items = [
-    { key: 'readOriginal', label: 'I have read the original letter (not just this summary)', hint: 'AI can misread unclear or handwritten text' },
-    { key: 'verifiedDeadline', label: 'I have verified the deadline matches my original letter', hint: 'Missing the deadline could mean losing your rights permanently' },
-    { key: 'understand', label: 'I understand why this decision was made', hint: "If you don't understand, call the office first" },
-    { key: 'hasPlan', label: 'I have a plan for what I want to do next', hint: 'Only you know if appealing is worth your time and effort' },
-    { key: 'confident', label: 'I feel ready to take action', hint: "Talk to family or a social worker if you're not sure" }
+    {
+      key: 'readOriginal',
+      label: 'I have read the original letter (not just this summary)',
+      hint: 'AI can misread unclear or handwritten text'
+    },
+    {
+      key: 'verifiedDeadline',
+      label: 'I have verified the deadline matches my original letter',
+      hint: 'Missing the deadline could mean losing your rights permanently'
+    },
+    {
+      key: 'understand',
+      label: 'I understand why this decision was made',
+      hint: "If you don't understand, call the office first"
+    },
+    {
+      key: 'hasPlan',
+      label: 'I have a plan for what I want to do next',
+      hint: 'Only you know if appealing is worth your time and effort'
+    },
+    {
+      key: 'confident',
+      label: 'I feel ready to take action',
+      hint: "Talk to family or a social worker if you're not sure"
+    }
   ];
 
   const allDone = Object.values(checked).every(Boolean);
 
   return (
-    <div className="hitl-checkpoint">
-      <h3>⚠️ Human Verification — Required</h3>
-      <p className="hitl-subtitle">AI can make mistakes. YOU must verify before taking action.</p>
+    <section className="hitl-checkpoint">
+      <h3 className="hitl-title">⚠️ HUMAN VERIFICATION — REQUIRED</h3>
+      <p className="hitl-subtitle">
+        AI can make mistakes. YOU must verify before taking action.
+      </p>
+
       <ul className="checklist">
         {items.map(({ key, label, hint }) => (
           <li key={key} className="checklist-item">
             <label className="check-row">
-              <input type="checkbox" checked={checked[key]} onChange={() => toggle(key)} />
+              <input
+                type="checkbox"
+                checked={checked[key]}
+                onChange={() => toggle(key)}
+              />
               <span>{label}</span>
             </label>
             <p className="checkbox-hint">💡 {hint}</p>
           </li>
         ))}
       </ul>
-      {allDone
-        ? <div className="hitl-ready">✅ You're ready to take action. See next steps below.</div>
-        : <div className="hitl-warning">Complete all checkboxes before proceeding.</div>
-      }
-    </div>
+
+      {allDone ? (
+        <div className="hitl-ready">
+          ✅ You're ready to take action. See next steps below.
+        </div>
+      ) : (
+        <div className="hitl-warning">
+          Complete all checkboxes before proceeding.
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -204,9 +247,9 @@ function DecisionSection({ result }) {
       case 'yes':
         return `Based on your decision to take action, here is your plan:\n\nDEADLINE: ${result.deadline || 'See original letter'}\n\nYou have confirmed:\n✅ Read and verified the original document\n✅ Understood the decision\n✅ Decided to take action\n\nNext Steps:\n1. Call the office listed in your letter to confirm details\n2. Get free legal help by calling 211\n3. Submit your response before the deadline\n\nDate: ${today}\nGenerated by: Lucify`;
       case 'no':
-        return `You have decided NOT to take action at this time.\n\nIMPORTANT:\nDEADLINE: ${result.deadline || 'See original letter'}\n\n⚠️ After the deadline passes, you may lose the right to appeal.\n⚠️ Call 211 for free support if circumstances change.\n\nDate: ${today}\nGenerated by: Lucify`;
+        return `You are not sure yet, and that is okay. Take a little more time to understand your options before deciding.\n\nWHAT TO DO NEXT:\n• Read the letter again and circle the deadline\n• Call 211 if you want free help understanding the notice\n• Ask the office listed on the letter what your choices are\n• Write down any questions you still have before you decide\n\nIMPORTANT:\nDEADLINE: ${result.deadline || 'See original letter'}\n\n⚠️ If you wait too long, you may lose the chance to appeal or ask for a review.\n⚠️ It is okay to pause, but do not ignore the deadline.\n\nYou have confirmed:\n✅ You want more time to think\n✅ You plan to gather more information\n✅ You understand the deadline still matters\n\nNext Steps:\n1. Review the letter carefully\n2. Call 211 or the office listed on the letter\n3. Ask what documents or proof you may need\n4. Decide after you have the information you need\n\nDate: ${today}\nGenerated by: Lucify`;
       case 'need_help':
-        return `You're not sure what to do — that's okay.\n\nIMMEDIATE CONTACTS:\n📞 Call 211 — Free legal help\n☎️ Call the official office — Ask them to explain again\n\nDEADLINE: ${result.deadline || 'See original letter'}\n\nThere is no rush to decide RIGHT NOW. But do not miss the deadline.\n\nDate: ${today}\nGenerated by: Lucify`;
+        return `You're not sure what to do — that's okay. This is a common situation, and you do not have to decide alone.\n\nRESOURCES TO HELP YOU DECIDE:\n• Call 211 for free legal help and referrals\n• Call the office listed on your letter and ask them to explain the deadline and options\n• Ask a trusted family member, friend, or social worker to review the letter with you\n• Keep copies of the letter, notices, and anything you send\n\nQUESTIONS TO ASK:\n• What is the exact deadline?\n• Can I still appeal or ask for a review?\n• What documents should I gather?\n• Is there a phone number, website, or office I can call for more help?\n\nDEADLINE: ${result.deadline || 'See original letter'}\n\nYou have confirmed:\n✅ You want help understanding your options\n✅ You plan to contact someone for support\n✅ You understand that waiting too long can be risky\n\nNext Steps:\n1. Call 211 today for free help\n2. Call the office on the letter and ask for clarification\n3. Write down the deadline and the documents you need\n4. Decide whether to appeal after you get advice\n\nDate: ${today}\nGenerated by: Lucify`;
       default:
         return '';
     }
@@ -232,13 +275,16 @@ function DecisionSection({ result }) {
       </p>
       <div className="decision-buttons">
         <button className="decision-btn decision-yes" onClick={() => setUserDecision('yes')}>
-          ✅ Yes, I want to take action
+          <span className="decision-btn-title">✅ Yes, I want to take action</span>
+          <span className="decision-btn-subtext">I understand the deadline and I’m ready to respond.</span>
         </button>
         <button className="decision-btn decision-no" onClick={() => setUserDecision('no')}>
-          ⏸️ Not sure yet
+          <span className="decision-btn-title">⏸️ Not sure yet</span>
+          <span className="decision-btn-subtext">Review the deadline, call 211, and decide later if needed.</span>
         </button>
         <button className="decision-btn decision-help" onClick={() => setUserDecision('need_help')}>
-          🤝 I need help deciding
+          <span className="decision-btn-title">🤝 I need help deciding</span>
+          <span className="decision-btn-subtext">Ask someone to explain your options and what to do next.</span>
         </button>
       </div>
 
@@ -250,9 +296,67 @@ function DecisionSection({ result }) {
             {userDecision === 'need_help' && '📋 Resources to Help You Decide'}
           </h4>
           <div className="letter-body">
-            {getLetterContent(userDecision).split('\n').map((line, i) => (
-              <p key={i}>{line}</p>
-            ))}
+            {(() => {
+              const lines = getLetterContent(userDecision).split('\n');
+              const intro = lines[0]?.trim();
+              const deadlineLine = lines.find(line => line.startsWith('DEADLINE:'));
+              const confirmStart = lines.findIndex(line => line.trim() === 'You have confirmed:');
+              const nextStart = lines.findIndex(line => line.trim() === 'Next Steps:');
+              const dateLine = lines.find(line => line.startsWith('Date:'));
+              const generatedLine = lines.find(line => line.startsWith('Generated by:'));
+
+              return (
+                <>
+                  {intro && (
+                    <div className="letter-box letter-box--intro">
+                      <p>{renderBold(intro)}</p>
+                    </div>
+                  )}
+
+                  {deadlineLine && (
+                    <div className="letter-box letter-box--deadline">
+                      <div className="letter-box-label">Deadline</div>
+                      <p>{renderBold(deadlineLine)}</p>
+                    </div>
+                  )}
+
+                  {confirmStart >= 0 && (
+                    <div className="letter-box letter-box--confirm">
+                      <div className="letter-box-label">Confirmed</div>
+                      <ul className="letter-list">
+                        {lines
+                          .slice(confirmStart + 1, nextStart >= 0 ? nextStart : lines.length)
+                          .filter(line => line.trim())
+                          .map((line, i) => (
+                            <li key={i}>{renderBold(line.replace(/^✅\s*/, ''))}</li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {nextStart >= 0 && (
+                    <div className="letter-box letter-box--steps">
+                      <div className="letter-box-label">Next Steps</div>
+                      <ol className="letter-list letter-list--numbered">
+                        {lines
+                          .slice(nextStart + 1, dateLine ? lines.indexOf(dateLine) : lines.length)
+                          .filter(line => line.trim())
+                          .map((line, i) => (
+                            <li key={i}>{renderBold(line.replace(/^\d+\.\s*/, ''))}</li>
+                          ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {(dateLine || generatedLine) && (
+                    <div className="letter-meta">
+                      {dateLine && <p>{renderBold(dateLine)}</p>}
+                      {generatedLine && <p>{renderBold(generatedLine)}</p>}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <button className="download-btn" onClick={() => handleDownload(userDecision)}>
             📄 Download this letter
